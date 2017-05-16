@@ -1,7 +1,7 @@
 # DeepAnomaly
 Main repository for GSOC-2017 project under CERN-HSF (https://summerofcode.withgoogle.com/projects/#4916590398144512)
 
-![](https://github.com/vyomshm/DeepAnomaly/blob/master/automated.png)
+![](https://github.com/vyomshm/DeepAnomaly/blob/master/automate.png)
 
 ## Useful links-
 
