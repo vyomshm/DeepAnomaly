@@ -7,10 +7,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from os import environ
-environ['KERAS_BACKEND'] = 'theano'
-import theano
-# import tensorflow as tf
+#from os import environ
+#environ['KERAS_BACKEND'] = 'theano'
+#import theano
+import tensorflow as tf
 from sklearn.preprocessing import LabelEncoder
 from datetime import datetime,timedelta
 import keras
@@ -22,16 +22,16 @@ from keras.layers.recurrent import LSTM
 # from keras_tqdm import TQDMNotebookCallback
 # from ipywidgets import interact
 
-from bokeh.io import push_notebook, show, output_notebook
-from bokeh.plotting import figure
-output_notebook()
+#from bokeh.io import push_notebook, show, output_notebook
+#from bokeh.plotting import figure
+#output_notebook()
 
 np.random.seed(7)
-get_ipython().magic('matplotlib inline')
+#get_ipython().magic('matplotlib inline')
 
-print("All dependencies imported!! theano : {} ; Keras :{}".format(theano.__version__,keras.__version__))
+print("All dependencies imported!! TesnsorFlow : {} ; Keras :{}".format(tf.__version__,keras.__version__))
 
-get_ipython().system('(date +%d\\ %B\\ %G)')
+#get_ipython().system('(date +%d\\ %B\\ %G)')
 
 
 # In[4]:
@@ -110,10 +110,10 @@ def preprocess_data(rucio_data, encoders=None):
 
 # In[12]:
 
-def get_and_preprocess_data(path='atlas_rucio-events-2017.06.01.csv'):
+def get_and_preprocess_data(path='data/atlas_rucio-events-2017.06.01.csv'):
     
     rucio_data = pd.read_csv(path)
-    rucio_data = rucio_data[:50000]
+    rucio_data = rucio_data[:1200000]
     rucio_data = preprocess_data(rucio_data)
     durations = rucio_data['duration']
     rucio_data = rucio_data.drop(['duration'], axis=1)
@@ -124,7 +124,8 @@ def get_and_preprocess_data(path='atlas_rucio-events-2017.06.01.csv'):
 
 x, y = get_and_preprocess_data()
 
-
+rucio_data = 5
+durations= 5
 # In[13]:
 
 # x[0:4]
@@ -150,13 +151,13 @@ def split_data(rucio_data,durations, batch_size=512, num_timesteps=50, split_fra
         inputs.append(v)
         outputs.append(w)
     
-    x = np.stack(inputs)
-    y = np.stack(outputs)
-    print(x.shape, y.shape)
+    inputs = np.stack(inputs)
+    outputs = np.stack(outputs)
+    print(inputs.shape, outputs.shape)
     
-    split_idx = int(x.shape[0]*split_frac)
-    trainX, trainY = x[:split_idx], y[:split_idx]
-    testX, testY = x[split_idx:], y[split_idx:]
+    split_idx = int(inputs.shape[0]*split_frac)
+    trainX, trainY = inputs[:split_idx], outputs[:split_idx]
+    testX, testY = inputs[split_idx:], outputs[split_idx:]
     print('Training Data shape:',trainX.shape, trainY.shape)
     print('Test Data shape: ',testX.shape, testY.shape)
     return trainX, trainY, testX, testY
@@ -288,7 +289,7 @@ def run_network(model=None,data=None, epochs=1,n_timesteps=60, batch=128):
             print("Training duration : {0}".format(time.time() - start_time))
             score = model.evaluate(trainX, trainY, verbose=0)
 
-            print("Network's training score [MSE]: {0}".format(score))
+            print("Network's training score [MSE]: {0} ; [in seconds]: {1}".format(score,np.sqrt(score)))
             print("Training finished !!!!!!")
             
             print('\n Saving model to disk..')
@@ -311,15 +312,15 @@ def plot_losses(losses):
     ax = fig.add_subplot(111)
     ax.plot(losses)
     ax.set_title('Loss per batch')
-    fig.show()
+    fig.savefig('plots/batch_loss.jpg')
     print(len(losses))
 
 
 # In[18]:
 
-training, data, model, losses = run_network(data=data, epochs=10, batch=128)
+training, data, model, losses = run_network(data=data, epochs=1, batch=512,n_timesteps=50)
 trainX, trainY, testX, testY = data
-plot_losses(losses)
+#plot_losses(losses)
 
 
 
@@ -357,15 +358,15 @@ print("Network's training score [MSE]: {0}, in seconds : {1}".format(score, np.s
 
 # In[47]:
 
-sns.set_context('poster')
+#sns.set_context('poster')
 
-plt.plot(training.history['loss'])
-plt.plot(training.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'validate'], loc='upper right')
-plt.show()
+#plt.plot(training.history['loss'])
+#plt.plot(training.history['val_loss'])
+#plt.title('model loss')
+#plt.ylabel('loss')
+#plt.xlabel('epoch')
+#plt.legend(['train', 'validate'], loc='upper right')
+#plt.savefig('plots/losses.jpg')
 
 
 # In[48]:
@@ -376,22 +377,42 @@ score = model.evaluate(testX, testY, verbose=2)
 print('Results: MSE - {:.6f}  ;  seconds = {:.3f}'.format(score, np.sqrt(score)))
 
 predictions=model.predict(testX)
-plt.plot(predictions[0:100],'y' )
-plt.plot(testY[0:100], 'g')
+#plt.plot(predictions[0:300],'y' )
+#plt.plot(testY[0:300], 'g')
 
-plt.show()
+#plt.savefig('plots/results.jpg')
 
 
 # In[56]:
 
-plt.plot(predictions[:300],'y' )
-plt.plot(testY[:300], 'g')
+#plt.plot(predictions[:100],'y' )
+#plt.plot(testY[:100], 'g')
 
-plt.show()
+#plt.savefig('plots/results_100.jpg')
 
 
 # In[54]:
 
 mae = testY-predictions
 print('max error : {} ; min error : {} ; Mean Error: {}'.format(np.max(mae), np.min(mae), np.mean(mae)))
+#plt.plot(mae,'r')
+#plt.savefig('plots/mae.jpg')
+import pickle
 
+f = open('plots/mae.pckl', 'wb')
+pickle.dump(mae, f)
+f.close()
+
+g = open('plots/testY.pckl','wb')
+pickle.dump(testY, g)
+g.close()
+
+h= open('plots/predictions.pckl', 'wb')
+pickle.dump(predictions, h)
+h.close()
+
+i = open('plots/history.pckl', 'wb')
+pickle.dump(losses, i)
+i.close()
+
+print('ALLL DONE!!!')
