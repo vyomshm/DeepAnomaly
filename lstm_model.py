@@ -30,7 +30,7 @@ from keras.layers.recurrent import LSTM
 np.random.seed(7)
 #get_ipython().magic('matplotlib inline')
 
-print("All dependencies imported!! TesnsorFlow : {} ; Keras :{}".format(tf.__version__,keras.__version__))
+print("All dependencies imported!! TensorFlow : {} ; Keras :{}".format(tf.__version__,keras.__version__))
 
 #get_ipython().system('(date +%d\\ %B\\ %G)')
 
@@ -56,8 +56,10 @@ def plot_data_stats(rucio_data):
 def train_encoders(rucio_data):
     
     if os.path.isfile('encoders/src.npy'):
+        print('using cached LabelEncoders for encoding data.....')
         src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder=load_encoders()
     else:
+        print('No cached LabelEncoders found!! training some new ones....')
         src_encoder = LabelEncoder()
         dst_encoder = LabelEncoder()
         scope_encoder = LabelEncoder()
@@ -141,7 +143,7 @@ def preprocess_data(rucio_data, encoders=None):
 def get_and_preprocess_data(path='data/atlas_rucio-events-2017.06.01.csv'):
     
     rucio_data = pd.read_csv(path)
-    rucio_data = rucio_data[:1000050]
+    rucio_data = rucio_data[:1005000]
     rucio_data = preprocess_data(rucio_data)
     durations = rucio_data['duration']
     rucio_data = rucio_data.drop(['duration'], axis=1)
@@ -154,10 +156,6 @@ x, y = get_and_preprocess_data()
 
 rucio_data = 5
 durations= 5
-# In[13]:
-
-# x[0:4]
-
 
 # # splitting data into test and training set
 
@@ -280,18 +278,18 @@ def run_network(model=None,data=None, epochs=1,n_timesteps=60, batch=128):
                                  validation_split=0.1, callbacks=[history], verbose=1)
 
             print("Training duration : {0}".format(time.time() - start_time))
-            score = model.evaluate(trainX, trainY, verbose=0)
+            #score = model.evaluate(trainX, trainY, verbose=0)
 
-            print("Network's training score [MSE]: {0} ; [in seconds]: {1}".format(score,np.sqrt(score)))
+            #print("Network's training score [MSE]: {0} ; [in seconds]: {1}".format(score,np.sqrt(score)))
             print("Training finished !!!!!!")
             
             print('\n Saving model to disk..')
             # serialize model to JSON
             model_json = model.to_json()
-            with open("model/lstm_model.json", "w") as json_file:
+            with open("models/lstm_model.json", "w") as json_file:
                 json_file.write(model_json)
             # serialize weights to HDF5
-            model.save_weights("model/lstm_model.h5")
+            model.save_weights("models/lstm_model.h5")
             print("Saved model to disk")
             return training, data, model, history.losses
         
@@ -311,10 +309,11 @@ def plot_losses(losses):
 
 # In[18]:
 
-training, data, model, losses = run_network(data=data, epochs=1, batch=512,n_timesteps=50)
+training, data, model, losses = run_network(data=data, epochs=10, batch=1024,n_timesteps=50)
 trainX, trainY, testX, testY = data
 #plot_losses(losses)
 
+np.save('models/batch_losses.npy', losses)
 
 
 # In[44]:
@@ -329,12 +328,12 @@ print("Network's training score [MSE]: {0}, in seconds : {1}".format(score, np.s
 # In[45]:
 
 # load json and create model
-json_file = open('lstm_model.json', 'r')
+json_file = open('models/lstm_model.json', 'r')
 loaded_model_json = json_file.read()
 json_file.close()
 loaded_model = model_from_json(loaded_model_json)
 # load weights into new model
-loaded_model.load_weights("lstm_model.h5")
+loaded_model.load_weights("models/lstm_model.h5")
 print("Loaded model from disk")
 loaded_model.compile(loss="mse", optimizer="adam")
 print('Model model compiled!!')
@@ -370,6 +369,9 @@ score = model.evaluate(testX, testY, verbose=2)
 print('Test Set Results: MSE - {:.6f}  ;  seconds = {:.3f}'.format(score, np.sqrt(score)))
 
 predictions=model.predict(testX)
+np.save('models/predictions.npy', predictions)
+np.save('models/testY.npy', testY)
+np.save('models/testX.npy', testX)
 #plt.plot(predictions[0:300],'y' )
 #plt.plot(testY[0:300], 'g')
 
@@ -386,5 +388,5 @@ mae = testY-predictions
 print('max error : {} ; min error : {} ; Mean Error: {}'.format(np.max(mae), np.min(mae), np.mean(mae)))
 #plt.plot(mae,'r')
 #plt.savefig('plots/mae.jpg')
-
+np.save('models/mae.npy', mae)
 print('ALLL DONE!!!')
