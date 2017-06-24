@@ -189,7 +189,7 @@ def split_data(rucio_data,durations, batch_size=512, num_timesteps=50, split_fra
     return trainX, trainY, testX, testY
 
 
-# data = split_data(x, y)
+data = split_data(x, y)
 
 # # Build model
 
@@ -251,7 +251,7 @@ class LossHistory(cb.Callback):
 # In[17]:
 
 import time
-def run_network(model=None,data=None, epochs=1,n_timesteps=30, batch=128):
+def run_network(model=None,data=None, epochs=1,n_timesteps=50, batch=128):
     
     print('\n Loading data...')
     if data is None:
@@ -309,7 +309,7 @@ def plot_losses(losses):
 
 # In[18]:
 
-training, data, model, losses = run_network(data=data, epochs=3, batch=512,n_timesteps=10)
+training, data, model, losses = run_network(data=data, epochs=3, batch=512,n_timesteps=50)
 trainX, trainY, testX, testY = data
 #plot_losses(losses)
 
