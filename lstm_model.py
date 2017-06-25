@@ -120,8 +120,7 @@ def preprocess_data(rucio_data, encoders=None):
 
     rucio_data = rucio_data.drop(timestamps, axis=1)
  
-    src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder=
-    train_encoders(rucio_data)
+    src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder = train_encoders(rucio_data)
 
     rucio_data['src-rse'] = src_encoder.transform(rucio_data['src-rse'])
     rucio_data['dst-rse'] = dst_encoder.transform(rucio_data['dst-rse'])
