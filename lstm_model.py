@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 #from os import environ
 #environ['KERAS_BACKEND'] = 'theano'
 #import theano
@@ -54,6 +55,36 @@ def plot_data_stats(rucio_data):
 
 def train_encoders(rucio_data):
     
+    if os.path.isfile('encoders/src.npy'):
+        src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder=load_encoders()
+    else:
+        src_encoder = LabelEncoder()
+        dst_encoder = LabelEncoder()
+        scope_encoder = LabelEncoder()
+        type_encoder = LabelEncoder()
+        activity_encoder = LabelEncoder()
+        protocol_encoder = LabelEncoder()
+        t_endpoint_encoder = LabelEncoder()
+
+        src_encoder.fit(rucio_data['src-rse'].unique())
+        dst_encoder.fit(rucio_data['dst-rse'].unique())
+        scope_encoder.fit(rucio_data['scope'].unique())
+        type_encoder.fit(rucio_data['src-type'].unique())
+        activity_encoder.fit(rucio_data['activity'].unique())
+        protocol_encoder.fit(rucio_data['protocol'].unique())
+        t_endpoint_encoder.fit(rucio_data['transfer-endpoint'].unique())
+
+        np.save('encoders/src.npy', src_encoder.classes_)
+        np.save('encoders/dst.npy', dst_encoder.classes_)
+        np.save('encoders/scope.npy', scope_encoder.classes_)
+        np.save('encoders/type.npy', type_encoder.classes_)
+        np.save('encoders/activity.npy', activity_encoder.classes_)
+        np.save('encoders/protocol.npy', protocol_encoder.classes_)
+        np.save('encoders/endpoint.npy', t_endpoint_encoder.classes_)
+    
+    return (src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder)
+
+def load_encoders(path='encoders/'):
     src_encoder = LabelEncoder()
     dst_encoder = LabelEncoder()
     scope_encoder = LabelEncoder()
@@ -61,14 +92,14 @@ def train_encoders(rucio_data):
     activity_encoder = LabelEncoder()
     protocol_encoder = LabelEncoder()
     t_endpoint_encoder = LabelEncoder()
-
-    src_encoder.fit(rucio_data['src-rse'].unique())
-    dst_encoder.fit(rucio_data['dst-rse'].unique())
-    scope_encoder.fit(rucio_data['scope'].unique())
-    type_encoder.fit(rucio_data['src-type'].unique())
-    activity_encoder.fit(rucio_data['activity'].unique())
-    protocol_encoder.fit(rucio_data['protocol'].unique())
-    t_endpoint_encoder.fit(rucio_data['transfer-endpoint'].unique())
+    
+    src_encoder.classes_ = np.load('encoders/src.npy')
+    dst_encoder.classes_ = np.load('encoders/dst.npy')
+    scope_encoder.classes_ = np.load('encoders/scope.npy')
+    type_encoder.classes_ = np.load('encoders/type.npy')
+    activity_encoder.classes_ = np.load('encoders/activity.npy')
+    protocol_encoder.classes_ = np.load('encoders/protocol.npy')
+    t_endpoint_encoder.classes_ = np.load('encoders/endpoint.npy')
     
     return (src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder)
 
@@ -88,11 +119,9 @@ def preprocess_data(rucio_data, encoders=None):
     rucio_data = rucio_data.sort_values(by='submitted_at')
 
     rucio_data = rucio_data.drop(timestamps, axis=1)
-    
-    if encoders==None:
-        src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder = train_encoders(rucio_data)
-    else:
-        src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder = encoders
+ 
+    src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder=
+    train_encoders(rucio_data)
 
     rucio_data['src-rse'] = src_encoder.transform(rucio_data['src-rse'])
     rucio_data['dst-rse'] = dst_encoder.transform(rucio_data['dst-rse'])
@@ -113,7 +142,7 @@ def preprocess_data(rucio_data, encoders=None):
 def get_and_preprocess_data(path='data/atlas_rucio-events-2017.06.01.csv'):
     
     rucio_data = pd.read_csv(path)
-    rucio_data = rucio_data[:1200000]
+    rucio_data = rucio_data[:1000050]
     rucio_data = preprocess_data(rucio_data)
     durations = rucio_data['duration']
     rucio_data = rucio_data.drop(['duration'], axis=1)
@@ -165,42 +194,6 @@ def split_data(rucio_data,durations, batch_size=512, num_timesteps=50, split_fra
 
 data = split_data(x, y)
 
-
-# In[15]:
-
-# def split_data(rucio_data,durations, batch_size=512, num_timesteps=1, split_frac=0.9):
-    
-#     slice_size = batch_size*num_timesteps
-#     print(rucio_data.shape[0])
-#     n_batches = int(rucio_data.shape[0] / slice_size)
-#     print('Total Batches : {}'.format(n_batches))
-    
-    
-#     rucio_data = rucio_data[0:n_batches*slice_size]
-#     durations = durations[0:n_batches*slice_size]
-    
-#     print(rucio_data.shape, durations.shape)
-#     x = np.stack(np.split(rucio_data, n_batches*batch_size))
-#     y = np.stack(np.split(durations, n_batches*batch_size))
-    
-#     print(x.shape, y.shape)
-    
-# #     x = np.stack(np.split(x, n_batches))
-# #     y = np.stack(np.split(y, n_batches))
-    
-# #     print(x.shape, y.shape)
-# #     print(x[0])
-    
-#     split_idx = int(x.shape[0]*split_frac)
-#     trainX, trainY = x[:split_idx], y[:split_idx]
-#     testX, testY = x[split_idx:], y[split_idx:]
-#     print('Training Data shape:',trainX.shape, trainY.shape)
-#     print('Test Data shape: ',testX.shape, testY.shape)
-#     return trainX, trainY, testX, testY
-
-# data = split_data(x, y)
-
-
 # # Build model
 
 # In[16]:
@@ -226,7 +219,8 @@ def build_model(num_timesteps=50):
     model.add(Activation("linear"))
     
     start = time.time()
-    model.compile(loss="mse", optimizer="rmsprop")
+    
+    model.compile(loss="mse", optimizer="adam")
     print ("Compilation Time : ", time.time() - start)
     return model
 
@@ -295,10 +289,10 @@ def run_network(model=None,data=None, epochs=1,n_timesteps=60, batch=128):
             print('\n Saving model to disk..')
             # serialize model to JSON
             model_json = model.to_json()
-            with open("lstm_model.json", "w") as json_file:
+            with open("model/lstm_model.json", "w") as json_file:
                 json_file.write(model_json)
             # serialize weights to HDF5
-            model.save_weights("lstm_model.h5")
+            model.save_weights("model/lstm_model.h5")
             print("Saved model to disk")
             return training, data, model, history.losses
         
@@ -343,7 +337,7 @@ loaded_model = model_from_json(loaded_model_json)
 # load weights into new model
 loaded_model.load_weights("lstm_model.h5")
 print("Loaded model from disk")
-loaded_model.compile(loss="mse", optimizer="rmsprop")
+loaded_model.compile(loss="mse", optimizer="adam")
 print('Model model compiled!!')
 
 
@@ -374,17 +368,13 @@ print("Network's training score [MSE]: {0}, in seconds : {1}".format(score, np.s
 trainX, trainY, testX, testY = data
 score = model.evaluate(testX, testY, verbose=2)
 
-print('Results: MSE - {:.6f}  ;  seconds = {:.3f}'.format(score, np.sqrt(score)))
+print('Test Set Results: MSE - {:.6f}  ;  seconds = {:.3f}'.format(score, np.sqrt(score)))
 
 predictions=model.predict(testX)
 #plt.plot(predictions[0:300],'y' )
 #plt.plot(testY[0:300], 'g')
 
 #plt.savefig('plots/results.jpg')
-
-
-# In[56]:
-
 #plt.plot(predictions[:100],'y' )
 #plt.plot(testY[:100], 'g')
 
@@ -397,22 +387,5 @@ mae = testY-predictions
 print('max error : {} ; min error : {} ; Mean Error: {}'.format(np.max(mae), np.min(mae), np.mean(mae)))
 #plt.plot(mae,'r')
 #plt.savefig('plots/mae.jpg')
-import pickle
-
-f = open('plots/mae.pckl', 'wb')
-pickle.dump(mae, f)
-f.close()
-
-g = open('plots/testY.pckl','wb')
-pickle.dump(testY, g)
-g.close()
-
-h= open('plots/predictions.pckl', 'wb')
-pickle.dump(predictions, h)
-h.close()
-
-i = open('plots/history.pckl', 'wb')
-pickle.dump(losses, i)
-i.close()
 
 print('ALLL DONE!!!')
