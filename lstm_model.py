@@ -309,7 +309,7 @@ def plot_losses(losses):
 
 # In[18]:
 
-training, data, model, losses = run_network(data=data, epochs=10, batch=1024,n_timesteps=50)
+training, data, model, losses = run_network(data=data, epochs=3, batch=512,n_timesteps=10)
 trainX, trainY, testX, testY = data
 #plot_losses(losses)
 
@@ -335,7 +335,7 @@ loaded_model = model_from_json(loaded_model_json)
 # load weights into new model
 loaded_model.load_weights("models/lstm_model.h5")
 print("Loaded model from disk")
-loaded_model.compile(loss="mse", optimizer="adam")
+loaded_model.compile(loss="mse", optimizer="rmsprop")
 print('Model model compiled!!')
 
 
