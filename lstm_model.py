@@ -198,7 +198,7 @@ data = split_data(x, y)
 def build_model(num_timesteps=50):
 
     model = Sequential()
-    layers = [15, 15, 10, 10, 1]
+    layers = [512, 256, 128, 64, 1]
     
     model.add(LSTM(layers[0], input_shape=(num_timesteps, 10), return_sequences=True))
     model.add(Dropout(0.2))
@@ -251,7 +251,7 @@ class LossHistory(cb.Callback):
 # In[17]:
 
 import time
-def run_network(model=None,data=None, epochs=1,n_timesteps=60, batch=128):
+def run_network(model=None,data=None, epochs=1,n_timesteps=10, batch=128):
     
     print('\n Loading data...')
     if data is None:
