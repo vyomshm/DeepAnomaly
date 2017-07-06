@@ -4,9 +4,8 @@ import os
 import random
 import stomp
 import time
-
-
-
+import pandas as pd
+import numpy as np
 
 
 class EventListener(stomp.ConnectionListener):
@@ -15,8 +14,12 @@ class EventListener(stomp.ConnectionListener):
         print 'error: %s' % message
 
     def on_message(self, headers, message):
+   
         msg = json.loads(message)
-        print len(msg), type(msg), msg.keys(), msg
+        if msg['event_type'] == 'transfer-done':
+		msgs.append(dict(msg['payload']))
+		print msg	
+        #print len(msg), type(msg), msg.keys(), msg
 
 
 
@@ -28,7 +31,7 @@ def setup():
     #there's a lot of messages, connect to one only to test ;-)
     #brokers = ['188.185.227.80', '188.184.82.150', '188.184.87.120', '188.185.227.37', '188.184.88.164']
     brokers = ['188.185.227.80', '188.184.82.150']
-
+ 
     conns = []
     for broker in brokers:
         print 'connecting to', broker,
@@ -50,7 +53,9 @@ def setup():
 
 
 if __name__ == '__main__':
+    msgs=[]
     setup()
-
     print 'waiting for events'
-    time.sleep(3)
+    time.sleep(10)
+    a = pd.DataFrame(msgs)
+    a.to_csv('msgs.csv')
