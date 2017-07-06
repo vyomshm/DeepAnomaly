@@ -16,7 +16,7 @@ class EventListener(stomp.ConnectionListener):
 
     def on_message(self, headers, message):
         msg = json.loads(message)
-        print len(msg), msg.keys(), msg
+        print len(msg), type(msg), msg.keys(), msg
 
 
 
@@ -27,7 +27,7 @@ def setup():
 
     #there's a lot of messages, connect to one only to test ;-)
     #brokers = ['188.185.227.80', '188.184.82.150', '188.184.87.120', '188.185.227.37', '188.184.88.164']
-    brokers = ['188.185.227.80']
+    brokers = ['188.185.227.80', '188.184.82.150']
 
     conns = []
     for broker in brokers:
