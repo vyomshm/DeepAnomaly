@@ -6,6 +6,7 @@ import stomp
 import time
 import pandas as pd
 import numpy as np
+from helpers import *
 
 
 class EventListener(stomp.ConnectionListener):
@@ -57,5 +58,15 @@ if __name__ == '__main__':
     setup()
     print 'waiting for events'
     time.sleep(10)
-    a = pd.DataFrame(msgs)
-    a.to_csv('msgs.csv')
+    save_live_data(msgs)
+    inputs, outputs = load_live_data()
+    model = load_lstm()
+
+    predictions = model.predict(inputs)
+    mae = np.subtract(np.reshape(outputs, [len(outputs), 1]), predictions)
+    
+
+    # making predictions
+
+
+    
