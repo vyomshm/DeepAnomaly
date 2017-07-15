@@ -6,12 +6,12 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-get_ipython().magic('matplotlib inline')
+#get_ipython().magic('matplotlib inline')
 import datetime 
 import seaborn as sns
 import os
 import time
-from sklearn.preprocessing import MinMaxScaler, LabelEncoder
+from sklearn.preprocessing import LabelEncoder
 import keras
 import tensorflow as tf
 from keras.models import Sequential,Model,model_from_json
@@ -262,7 +262,7 @@ def return_to_original(x, y, preds, index=None):
     print(data.shape)
     data = decode_labels(data)
     data['duration'] = y
-    data['prediction'] = pred
+    data['prediction'] = preds
     data['duration'] = data['duration'] * 1e3
     data['prediction'] = data['prediction'] * 1e3
     
@@ -372,9 +372,9 @@ def evaluate_network(limit=None, n_timesteps=100, path="data/",model=None):
         print('making predictions...')
         model = load_lstm()
         predictions = model.predict(x)
-        score = model.evaluate(x,y)
-        print('score: {}'.format(score))
-        end = time.time - start_time
+        #score = model.evaluate(x,y)
+        #print('score: {}'.format(score))
+        end = time.time() - start_time
         print('Done !! in {} min'.format(end/60))
 
 
@@ -393,9 +393,12 @@ def evaluate_network(limit=None, n_timesteps=100, path="data/",model=None):
         # plt.ylabel('durations in seconds')
         # plt.show()
 
-        data['mae'] = data['duration'] - data['prediction']
-        print("Mean : {} ; std :{} ; mAX : {} ; min: {} ".format(np.mean(data['mae'])))
-        # data['mae'].plot()
+        error = data['duration'] - data['prediction']
+        print("Mean : {} ; std :{} ; mAX : {} ; min: {} ".format(np.mean(error),np.std(error),np.max(error),np.min(error)))
+        data['mae']= error
+	#data.to_csv('pred.csv")
+	#print("predictions/pred_"+str(i)+".csv")
+	#data.to_csv('pred.csv')
         # plt.show()
 
 
