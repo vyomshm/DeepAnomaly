@@ -22,7 +22,7 @@ import keras.callbacks as cb
 from keras.callbacks import ModelCheckpoint
 from keras.layers.recurrent import LSTM
 from keras_tqdm import TQDMNotebookCallback
-
+from multi_gpu import to_multi_gpu
 from keras.layers import merge
 from keras.layers.core import Lambda
 from keras.models import Model
@@ -283,48 +283,47 @@ class LossHistory(cb.Callback):
         self.losses.append(batch_loss)
 
 
-# In[61]:
 
-def make_parallel(model, gpu_count):
-    def get_slice(data, idx, parts):
-        shape = tf.shape(data)
-        size = tf.concat([ shape[:1] // parts, shape[1:] ],axis=0)
-        stride = tf.concat([ shape[:1] // parts, shape[1:]*0 ],axis=0)
-        start = stride * idx
-        return tf.slice(data, start, size)
+# def make_parallel(model, gpu_count):
+#     def get_slice(data, idx, parts):
+#         shape = tf.shape(data)
+#         size = tf.concat([ shape[:1] // parts, shape[1:] ],axis=0)
+#         stride = tf.concat([ shape[:1] // parts, shape[1:]*0 ],axis=0)
+#         start = stride * idx
+#         return tf.slice(data, start, size)
 
-    outputs_all = []
-    for i in range(len(model.outputs)):
-        outputs_all.append([])
+#     outputs_all = []
+#     for i in range(len(model.outputs)):
+#         outputs_all.append([])
 
-    #Place a copy of the model on each GPU, each getting a slice of the batch
-    for i in range(gpu_count):
-        with tf.device('/gpu:%d' % i):
-            with tf.name_scope('tower_%d' % i) as scope:
+#     #Place a copy of the model on each GPU, each getting a slice of the batch
+#     for i in range(gpu_count):
+#         with tf.device('/gpu:%d' % i):
+#             with tf.name_scope('tower_%d' % i) as scope:
 
-                inputs = []
-                #Slice each input into a piece for processing on this GPU
-                for x in model.inputs:
-                    input_shape = tuple(x.get_shape().as_list())[1:]
-                    slice_n = Lambda(get_slice, output_shape=input_shape, arguments={'idx':i,'parts':gpu_count})(x)
-                    inputs.append(slice_n)                
+#                 inputs = []
+#                 #Slice each input into a piece for processing on this GPU
+#                 for x in model.inputs:
+#                     input_shape = tuple(x.get_shape().as_list())[1:]
+#                     slice_n = Lambda(get_slice, output_shape=input_shape, arguments={'idx':i,'parts':gpu_count})(x)
+#                     inputs.append(slice_n)                
 
-                outputs = model(inputs)
+#                 outputs = model(inputs)
                 
-                if not isinstance(outputs, list):
-                    outputs = [outputs]
+#                 if not isinstance(outputs, list):
+#                     outputs = [outputs]
                 
-                #Save all the outputs for merging back together later
-                for l in range(len(outputs)):
-                    outputs_all[l].append(outputs[l])
+#                 #Save all the outputs for merging back together later
+#                 for l in range(len(outputs)):
+#                     outputs_all[l].append(outputs[l])
 
-    # merge outputs on CPU
-    with tf.device('/cpu:0'):
-        merged = []
-        for outputs in outputs_all:
-            merged.append(merge(outputs, mode='concat', concat_axis=0))
+#     # merge outputs on CPU
+#     with tf.device('/cpu:0'):
+#         merged = []
+#         for outputs in outputs_all:
+#             merged.append(merge(outputs, mode='concat', concat_axis=0))
             
-        return Model(input=model.inputs, output=merged)
+#         return Model(input=model.inputs, output=merged)
 
 def build_model(num_timesteps=50, batch_size = 512, parallel=False):
 
@@ -352,7 +351,7 @@ def build_model(num_timesteps=50, batch_size = 512, parallel=False):
     start = time.time()
     
     if parallel:
-        model = make_parallel(model,4)
+        model = to_multi_gpu(model,4)
     
     model.compile(loss="mse", optimizer="adam")
     print ("Compilation Time : ", time.time() - start)
@@ -375,7 +374,7 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
     if model is None:
         model = build_model(num_timesteps=n_timesteps, parallel=parallel)
         history = LossHistory()
-            
+        os.makedir('/tmp')
         checkpointer = ModelCheckpoint(filepath='/tmp/weights.hdf5', verbose=1, save_best_only=True)
         print('model built and compiled !')
     
