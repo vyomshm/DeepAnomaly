@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[31]:
 
 import numpy as np
 import pandas as pd
@@ -10,8 +10,10 @@ get_ipython().magic('matplotlib inline')
 import datetime 
 import seaborn as sns
 import os
+import time
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 import keras
+import tensorflow as tf
 from keras.models import Sequential,Model,model_from_json
 from keras.layers import Dense,Activation,Dropout,Input
 from keras.layers.advanced_activations import LeakyReLU, PReLU
@@ -21,8 +23,12 @@ from keras.callbacks import ModelCheckpoint
 from keras.layers.recurrent import LSTM
 from keras_tqdm import TQDMNotebookCallback
 
+from keras.layers import merge
+from keras.layers.core import Lambda
+from keras.models import Model
 
-# In[2]:
+
+# In[3]:
 
 def load_encoders():
     src_encoder = LabelEncoder()
@@ -75,7 +81,7 @@ def train_encoders(rucio_data, use_cache=True):
     return (src_encoder,dst_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder)
 
 
-# In[3]:
+# In[4]:
 
 def preprocess_data(rucio_data, use_cache=True):
     
@@ -116,7 +122,7 @@ def preprocess_data(rucio_data, use_cache=True):
     return rucio_data
 
 
-# In[4]:
+# In[5]:
 
 def rescale_data(rucio_data, durations):
     # Normalization
@@ -160,7 +166,7 @@ def plot_graphs_and_rescale(data):
     return data, byte_scaler, delay_scaler, duration_scaler
 
 
-# In[5]:
+# In[6]:
 
 def prepare_model_inputs(rucio_data,durations, num_timesteps=50):
     
@@ -184,7 +190,7 @@ def prepare_model_inputs(rucio_data,durations, num_timesteps=50):
     return inputs, outputs
 
 
-# In[12]:
+# In[56]:
 
 path = '../' # Change this as you need.
 
@@ -203,8 +209,8 @@ def load_rucio_data(file, use_cache = True, limit=None):
     if limit != None:
         data= data[:limit]
         print('Limiting data size to {} '.format(limit))
-    print(data)
-    print('preprocess data... ')
+#     print(data)
+    print('preprocessing data... ')
     data = preprocess_data(data)
     print('Saving indices for later..')
     indices = data.index
@@ -213,24 +219,25 @@ def load_rucio_data(file, use_cache = True, limit=None):
     data = data[['bytes', 'delay', 'activity', 'dst-rse', 'dst-type',
                  'protocol', 'src-rse', 'src-type', 'transfer-endpoint']]
     data, durations = rescale_data(data, durations)
-    
+    data = data.as_matrix()
+    durations = durations.as_matrix()
     return data, durations, indices
 
 
-# In[20]:
+# In[57]:
 
-a= get_rucio_files(path=path)
-x, y, indices = load_rucio_data(a[12], limit=5)
+# a= get_rucio_files(path=path)
+# x, y, indices = load_rucio_data(a[12], limit=5)
 
-print(x ,'\n', y, '\n', indices)
-
-
-# In[21]:
-
-x,y = prepare_model_inputs(x,y,num_timesteps=2)
+# print(x ,'\n', y, '\n', indices)
 
 
-# In[33]:
+# In[58]:
+
+# x,y = prepare_model_inputs(x,y,num_timesteps=2)
+
+
+# In[59]:
 
 def return_to_original(x, y, index=None):
     y = y * 1e3
@@ -252,7 +259,7 @@ def return_to_original(x, y, index=None):
     return data
 
 
-# In[25]:
+# In[60]:
 
 def decode_labels(rucio_data):
     src_encoder,dst_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder = load_encoders()
@@ -276,7 +283,7 @@ class LossHistory(cb.Callback):
         self.losses.append(batch_loss)
 
 
-# In[23]:
+# In[61]:
 
 def make_parallel(model, gpu_count):
     def get_slice(data, idx, parts):
@@ -319,7 +326,7 @@ def make_parallel(model, gpu_count):
             
         return Model(input=model.inputs, output=merged)
 
-def build_model(num_timesteps=50, batch_size = 512, make_parallel=False):
+def build_model(num_timesteps=50, batch_size = 512, parallel=False):
 
     model = Sequential()
     layers = [512, 512, 512, 512, 128, 1]
@@ -344,7 +351,7 @@ def build_model(num_timesteps=50, batch_size = 512, make_parallel=False):
     
     start = time.time()
     
-    if make_parallel:
+    if parallel:
         model = make_parallel(model,4)
     
     model.compile(loss="mse", optimizer="adam")
@@ -352,7 +359,7 @@ def build_model(num_timesteps=50, batch_size = 512, make_parallel=False):
     return model
 
 
-# In[24]:
+# In[65]:
 
 def plot_losses(losses):
     sns.set_context('poster')
@@ -363,10 +370,10 @@ def plot_losses(losses):
     print(len(losses))
     fig.show()
 
-def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, batch=128):
+def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, batch=128, path="data/",parallel=True):
     
     if model is None:
-        model = build_model(num_timesteps=n_timesteps, make_parallel=True)
+        model = build_model(num_timesteps=n_timesteps, parallel=parallel)
         history = LossHistory()
             
         checkpointer = ModelCheckpoint(filepath='/tmp/weights.hdf5', verbose=1, save_best_only=True)
@@ -378,17 +385,22 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
     try:
         for i,file in enumerate(a):
             print("Training on file :{}".format(file))
-            x, y, indices = load_rucio_data(file, limit=None)
+            x, y, indices = load_rucio_data(file, limit=limit)
             print('\n Data Loaded and preprocessed !!....')
-            x,y = prepare_model_inputs(x,y,num_timesteps=n_timesteps)
+            x, y = prepare_model_inputs(x, y, num_timesteps=n_timesteps)
             print('Data ready for training.')
 
             start_time = time.time()
 
             print('Training model...')
-            training = model.fit(x, y, epochs=epochs, batch_size=batch,
-                                 validation_split=0.1, callbacks=[history,TQDMNotebookCallback(leave_inner=True), checkpointer],
-                                 verbose=0)
+            if parallel:
+                training = model.fit(x, y, epochs=epochs, batch_size=batch*4,
+                                     validation_split=0.1, callbacks=[history,TQDMNotebookCallback(leave_inner=True), checkpointer],
+                                     verbose=0)
+            else:
+                training = model.fit(x, y, epochs=epochs, batch_size=batch,
+                                     validation_split=0.1, callbacks=[history,TQDMNotebookCallback(leave_inner=True), checkpointer],
+                                     verbose=0)
 
             print("Training duration : {0}".format(time.time() - start_time))
             score = model.evaluate(x, y, verbose=0)
@@ -412,6 +424,16 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
     except KeyboardInterrupt:
             print('KeyboardInterrupt')
             return model, history.losses
+
+
+# In[ ]:
+
+train_network(n_timesteps=100, batch=256)
+
+
+# In[ ]:
+
+
 
 
 # In[ ]:
