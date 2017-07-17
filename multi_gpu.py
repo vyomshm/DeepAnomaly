@@ -20,7 +20,7 @@ def slice_batch(x, n_gpus, part):
 
 def to_multi_gpu(model, n_gpus=2):
     if n_gpus ==1:
-	return model
+        return model
     
     with tf.device('/cpu:0'):
         x = Input(model.input_shape[1:])
@@ -32,6 +32,6 @@ def to_multi_gpu(model, n_gpus=2):
 
     with tf.device('/cpu:0'):
         # Deprecated
- 	#merged = merge(towers, mode='concat', concat_axis=0)
-	merged = Concatenate(axis=0)(towers)
+        #merged = merge(towers, mode='concat', concat_axis=0)
+        merged = Concatenate(axis=0)(towers)
     return Model(inputs=[x], outputs=merged)
