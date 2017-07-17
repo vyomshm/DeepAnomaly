@@ -6,7 +6,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-get_ipython().magic('matplotlib inline')
+#get_ipython().magic('matplotlib inline')
 import datetime 
 import seaborn as sns
 import os
@@ -21,7 +21,7 @@ from keras.optimizers import Adam
 import keras.callbacks as cb
 from keras.callbacks import ModelCheckpoint
 from keras.layers.recurrent import LSTM
-from keras_tqdm import TQDMNotebookCallback
+#from keras_tqdm import TQDMNotebookCallback
 from multi_gpu import to_multi_gpu
 from keras.layers import merge
 from keras.layers.core import Lambda
@@ -374,7 +374,7 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
     if model is None:
         model = build_model(num_timesteps=n_timesteps, parallel=parallel)
         history = LossHistory()
-        os.makedir('/tmp')
+        #os.makedir('/tmp')
         checkpointer = ModelCheckpoint(filepath='/tmp/weights.hdf5', verbose=1, save_best_only=True)
         print('model built and compiled !')
     
@@ -425,7 +425,7 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
 
 # In[ ]:
 
-train_network(n_timesteps=100, batch=256, parallel= True)
+train_network(n_timesteps=100,limit=1000, batch=256, parallel= True)
 
 
 # In[ ]:
