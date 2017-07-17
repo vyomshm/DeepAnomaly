@@ -394,12 +394,10 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
             print('Training model...')
             if parallel:
                 training = model.fit(x, y, epochs=epochs, batch_size=batch*4,
-                                     validation_split=0.1, callbacks=[history,TQDMNotebookCallback(leave_inner=True), checkpointer],
-                                     verbose=0)
+                                     validation_split=0.1, callbacks=[history, checkpointer])
             else:
                 training = model.fit(x, y, epochs=epochs, batch_size=batch,
-                                     validation_split=0.1, callbacks=[history,TQDMNotebookCallback(leave_inner=True), checkpointer],
-                                     verbose=0)
+                                     validation_split=0.1, callbacks=[history, checkpointer])
 
             print("Training duration : {0}".format(time.time() - start_time))
             score = model.evaluate(x, y, verbose=0)
@@ -413,8 +411,8 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
             # serialize weights to HDF5
             model.save_weights("models/lstm_model.h5")
             print("Saved model to disk")
-            print('plotting losses..')
-            plot_losses(history.losses)
+            #print('plotting losses..')
+            #plot_losses(history.losses)
 
         print('Training Complete !!')
         
@@ -427,7 +425,7 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
 
 # In[ ]:
 
-train_network(n_timesteps=100, batch=256)
+train_network(n_timesteps=100, batch=256, parallel= True)
 
 
 # In[ ]:
