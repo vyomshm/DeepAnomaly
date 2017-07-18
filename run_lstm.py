@@ -396,9 +396,9 @@ def evaluate_network(limit=None, n_timesteps=100, path="data/",model=None):
         error = data['duration'] - data['prediction']
         print("Mean : {} ; std :{} ; mAX : {} ; min: {} ".format(np.mean(error),np.std(error),np.max(error),np.min(error)))
         data['mae']= error
-	#data.to_csv('pred.csv")
-	#print("predictions/pred_"+str(i)+".csv")
-	#data.to_csv('pred.csv')
+	    #data.to_csv('pred.csv")
+	    filename = "predictions/pred_"+str(i)+".csv"
+	    data.to_csv('pred.csv')
         # plt.show()
 
 
