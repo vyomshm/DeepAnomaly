@@ -400,8 +400,8 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
                                      validation_split=0.1, callbacks=[history, checkpointer])
 
             print("Training duration : {0}".format(time.time() - start_time))
-            score = model.evaluate(x, y, verbose=0)
-            print("Network's Residual training score [MSE]: {0} ; [in seconds]: {1}".format(score,np.sqrt(score)))
+            #score = model.evaluate(x, y, verbose=0)
+            #print("Network's Residual training score [MSE]: {0} ; [in seconds]: {1}".format(score,np.sqrt(score)))
             print("Training on {} finished !!".format(file))
             print('\n Saving model to disk..')
             # serialize model to JSON
@@ -425,15 +425,6 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
 
 # In[ ]:
 
-train_network(n_timesteps=100,limit=1000, batch=256, parallel= True)
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
+train_network(n_timesteps=100,limit=None, batch=300, parallel= True)
 
 
