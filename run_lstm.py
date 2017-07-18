@@ -385,7 +385,11 @@ def evaluate_network(limit=None, n_timesteps=100, path="data/",model=None):
         # plt.show()
 
         data = return_to_original(x, y, predictions, index=indices)
-
+        error = data['duration'] - data['prediction']
+        print("Mean : {} ; std :{} ; mAX : {} ; min: {} ".format(np.mean(error),np.std(error),np.max(error),np.min(error)))
+        data['mae']= error
+        filename = "predictions/pred_"+str(i)+".csv"
+        data.to_csv(filename)
 
         # plt.plot(data['duration'], 'g')
         # plt.plot(data['prediction'], 'y')
@@ -393,12 +397,7 @@ def evaluate_network(limit=None, n_timesteps=100, path="data/",model=None):
         # plt.ylabel('durations in seconds')
         # plt.show()
 
-        error = data['duration'] - data['prediction']
-        print("Mean : {} ; std :{} ; mAX : {} ; min: {} ".format(np.mean(error),np.std(error),np.max(error),np.min(error)))
-        data['mae']= error
-	    #data.to_csv('pred.csv")
-	    filename = "predictions/pred_"+str(i)+".csv"
-	    data.to_csv('pred.csv')
+        
         # plt.show()
 
 
