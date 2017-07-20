@@ -128,11 +128,11 @@ def rescale_data(rucio_data, durations):
     # Normalization
     # using custom scaling parameters (based on trends of the following variables)
 
-    durations = durations / 1e3
-    rucio_data['bytes'] = rucio_data['bytes'] / 1e10
-    rucio_data['delay'] = rucio_data['delay'] / 1e5
-    rucio_data['src-rse'] = rucio_data['src-rse'] / 1e2
-    rucio_data['dst-rse'] = rucio_data['dst-rse'] / 1e2
+    # durations = durations 
+    rucio_data['bytes'] = rucio_data['bytes'] / 1e8
+    rucio_data['delay'] = rucio_data['delay'] / 1e3
+    # rucio_data['src-rse'] = rucio_data['src-rse'] / 1e2
+    # rucio_data['dst-rse'] = rucio_data['dst-rse'] / 1e2
     
     return rucio_data, durations
 
@@ -206,9 +206,10 @@ def get_rucio_files(path='../', n_files =100):
 def load_rucio_data(file, use_cache = True, limit=None):
     print('reading : {}'.format(file))
     data = pd.read_csv(file)
+    data_size = data.shape[0]
     if limit != None:
-        data= data[:limit]
-        print('Limiting data size to {} '.format(limit))
+        data= data[:int(data_size*limit)]
+        print('Limiting data size to {} '.format(int(data_size*limit)))
 #     print(data)
     print('preprocessing data... ')
     data = preprocess_data(data)
@@ -240,19 +241,19 @@ def load_rucio_data(file, use_cache = True, limit=None):
 # In[59]:
 
 def return_to_original(x, y, index=None):
-    y = y * 1e3
-    print(x.shape, y.shape)
-    print(x[0])
+    # y = y * 1e3
+    # print(x.shape, y.shape)
+    # print(x[0])
     cols = ['bytes', 'delay', 'activity', 'dst-rse', 'dst-type','protocol', 'src-rse', 'src-type', 'transfer-endpoint']
     n_steps = x.shape[1]
     data = list(x[0])
     for i in range(1,x.shape[0]):
         data.append(x[i,n_steps-1,:])
     data = pd.DataFrame(data, index=indices, columns=cols)
-    data['bytes'] = data['bytes'] * 1e10
-    data['delay'] = data['delay'] * 1e5
-    data['src-rse'] = data['src-rse'] * 1e2
-    data['dst-rse'] = data['dst-rse'] * 1e2
+    data['bytes'] = data['bytes'] * 1e8
+    data['delay'] = data['delay'] * 1e3
+    # data['src-rse'] = data['src-rse'] * 1e2
+    # data['dst-rse'] = data['dst-rse'] * 1e2
     
     data = data.round().astype(int)
     data = decode_labels(data)
@@ -425,6 +426,6 @@ def train_network(model=None,limit=None, data=None, epochs=1,n_timesteps=100, ba
 
 # In[ ]:
 
-train_network(n_timesteps=100,limit=None, batch=300, parallel= True)
+train_network(n_timesteps=100,limit=0.7, batch=300, parallel= False)
 
 
