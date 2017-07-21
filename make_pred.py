@@ -34,7 +34,7 @@ pred = model.predict(data)
 
 data = return_to_original(data, durations, pred, index=indices)
 print(data.shape)
-data.to_csv('rucio_transfer-events-2017.07.20.csv')
+data.to_csv('rucio_transfer-anomalous-events-2017.07.20.csv')
 
 
 
