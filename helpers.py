@@ -1,18 +1,19 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import os
 import keras
 import keras.callbacks as cb
 from keras.models import Sequential,Model,model_from_json
 from keras.layers import Dense,Activation,Dropout,Input
 from keras.layers.advanced_activations import LeakyReLU, PReLU
+from sklearn.preprocessing import LabelEncoder
 from keras.optimizers import Adam
 from keras.layers.recurrent import LSTM
-from keras_tqdm import TQDMNotebookCallback
 
 def save_live_data(msgs, live_path = 'live_data/msgs.csv'):
-	data = pd.DataFrame(msgs)
+    data = pd.DataFrame(msgs)
     data.to_csv(live_path)
+    
     print('Messages saved as {} !  Data Size : {}'.format(live_path, data.shape))
     
 
@@ -43,19 +44,35 @@ def load_lstm():
     return loaded_model
 
 
+def load_encoders():
+    src_encoder = LabelEncoder()
+    dst_encoder = LabelEncoder()
+    type_encoder = LabelEncoder()
+    activity_encoder = LabelEncoder()
+    protocol_encoder = LabelEncoder()
+    t_endpoint_encoder = LabelEncoder()
+    
+    src_encoder.classes_ = np.load('encoders/ddm_rse_endpoints.npy')
+    dst_encoder.classes_ = np.load('encoders/ddm_rse_endpoints.npy')
+    type_encoder.classes_ = np.load('encoders/type.npy')
+    activity_encoder.classes_ = np.load('encoders/activity.npy')
+    protocol_encoder.classes_ = np.load('encoders/protocol.npy')
+    t_endpoint_encoder.classes_ = np.load('encoders/endpoint.npy')
+    
+    return (src_encoder,dst_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder)
+
 def train_encoders(rucio_data, use_cache=True):
     
     if use_cache:
-        if os.path.isfile('encoders/src.npy'):
+        if os.path.isfile('encoders/ddm_rse_endpoints.npy') and os.path.isfile('encoders/activity.npy'):
             print('using cached LabelEncoders for encoding data.....')
-            src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder=load_encoders()
+            src_encoder,dst_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder=load_encoders()
         else:
             print('NO cache found')
     else:
-        print('No cached encoder ! Training some new ones....')
+        print('No cached encoders found ! Training Some New Ones using input data!')
         src_encoder = LabelEncoder()
         dst_encoder = LabelEncoder()
-        scope_encoder = LabelEncoder()
         type_encoder = LabelEncoder()
         activity_encoder = LabelEncoder()
         protocol_encoder = LabelEncoder()
@@ -63,7 +80,6 @@ def train_encoders(rucio_data, use_cache=True):
 
         src_encoder.fit(rucio_data['src-rse'].unique())
         dst_encoder.fit(rucio_data['dst-rse'].unique())
-        scope_encoder.fit(rucio_data['scope'].unique())
         type_encoder.fit(rucio_data['src-type'].unique())
         activity_encoder.fit(rucio_data['activity'].unique())
         protocol_encoder.fit(rucio_data['protocol'].unique())
@@ -71,40 +87,20 @@ def train_encoders(rucio_data, use_cache=True):
 
         np.save('encoders/src.npy', src_encoder.classes_)
         np.save('encoders/dst.npy', dst_encoder.classes_)
-        np.save('encoders/scope.npy', scope_encoder.classes_)
         np.save('encoders/type.npy', type_encoder.classes_)
         np.save('encoders/activity.npy', activity_encoder.classes_)
         np.save('encoders/protocol.npy', protocol_encoder.classes_)
         np.save('encoders/endpoint.npy', t_endpoint_encoder.classes_)
     
-    return (src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder)
-
-def load_encoders(path='encoders/'):
-    src_encoder = LabelEncoder()
-    dst_encoder = LabelEncoder()
-    scope_encoder = LabelEncoder()
-    type_encoder = LabelEncoder()
-    activity_encoder = LabelEncoder()
-    protocol_encoder = LabelEncoder()
-    t_endpoint_encoder = LabelEncoder()
-    
-    src_encoder.classes_ = np.load('encoders/src.npy')
-    dst_encoder.classes_ = np.load('encoders/dst.npy')
-    scope_encoder.classes_ = np.load('encoders/scope.npy')
-    type_encoder.classes_ = np.load('encoders/type.npy')
-    activity_encoder.classes_ = np.load('encoders/activity.npy')
-    protocol_encoder.classes_ = np.load('encoders/protocol.npy')
-    t_endpoint_encoder.classes_ = np.load('encoders/endpoint.npy')
-    
-    return (src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder)
+    return (src_encoder,dst_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder)
 
 def preprocess_data(rucio_data, use_cache=True):
     
     fields_to_drop = ['account','reason','checksum-adler','checksum-md5','guid','request-id','transfer-id','tool-id',
-                      'transfer-link','name','previous-request-id','src-url','dst-url', 'Unnamed: 0']
+                      'transfer-link','name','previous-request-id','scope','src-url','dst-url', 'Unnamed: 0']
     timestamps = ['started_at', 'submitted_at','transferred_at']
 
-    #DROP FIELDS , CHANGE TIME FORMAT
+    #DROP FIELDS , CHANGE TIME FORMAT, add dataetime index
     rucio_data = rucio_data.drop(fields_to_drop, axis=1)
     for timestamp in timestamps:
         rucio_data[timestamp]= pd.to_datetime(rucio_data[timestamp], infer_datetime_format=True)
@@ -112,31 +108,22 @@ def preprocess_data(rucio_data, use_cache=True):
     rucio_data['delay'] = rucio_data['delay'].astype('timedelta64[s]')
     
     rucio_data = rucio_data.sort_values(by='submitted_at')
-
+    
+    # Reindex data with 'submitted_at timestamp'
+    rucio_data.index = pd.DatetimeIndex(rucio_data['submitted_at'])
+    
+    #remove all timestamp columns
     rucio_data = rucio_data.drop(timestamps, axis=1)
-    
-    # Normalization
-    
-    #filesize_max = np.max(rucio_data['bytes'].as_matrix())
-    filesize_mean = np.mean(rucio_data['bytes'].as_matrix())
-    filesize_std = np.std(rucio_data['bytes'].as_matrix())
-    
-    delay_mean = np.mean(rucio_data['delay'].as_matrix())
-    delay_std = np.std(rucio_data['delay'].as_matrix())
-    
-    rucio_data['bytes'] = (rucio_data['bytes'] - filesize_mean) / filesize_std
-    rucio_data['delay'] = (rucio_data['delay'] - delay_mean) / delay_std
     
     # encode categorical data
  
     if use_cache==True:
-        src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder = train_encoders(rucio_data, use_cache=True)
+        src_encoder,dst_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder = train_encoders(rucio_data, use_cache=True)
     else:
-        src_encoder,dst_encoder,scope_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder = train_encoders(rucio_data, use_cache=False)
+        src_encoder,dst_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder = train_encoders(rucio_data, use_cache=False)
 
     rucio_data['src-rse'] = src_encoder.transform(rucio_data['src-rse'])
     rucio_data['dst-rse'] = dst_encoder.transform(rucio_data['dst-rse'])
-    rucio_data['scope'] = scope_encoder.transform(rucio_data['scope'])
     rucio_data['src-type'] = type_encoder.transform(rucio_data['src-type'])
     rucio_data['dst-type'] = type_encoder.transform(rucio_data['dst-type'])
     rucio_data['activity'] = activity_encoder.transform(rucio_data['activity'])
@@ -146,50 +133,80 @@ def preprocess_data(rucio_data, use_cache=True):
     return rucio_data
 
 
-# # Load and preprocess data
+def rescale_data(rucio_data, durations):
+    # Normalization
+    # using custom scaling parameters (based on trends of the following variables)
 
-# In[12]:
-
-def get_and_preprocess_data(path='data/atlas_rucio-events-2017.06.01.csv', use_cache=True):
+#     durations = durations / 1e3
+    rucio_data['bytes'] = rucio_data['bytes'] / 1e8
+    rucio_data['delay'] = rucio_data['delay'] / 1e3
+#     rucio_data['src-rse'] = rucio_data['src-rse'] / 1e2
+#     rucio_data['dst-rse'] = rucio_data['dst-rse'] / 1e2
     
-    rucio_data = pd.read_csv(path)
-#     rucio_data = rucio_data[:800000]
-    rucio_data = preprocess_data(rucio_data, use_cache=use_cache)
-    durations = rucio_data['duration']
-    rucio_data = rucio_data.drop(['duration'], axis=1)
-    inputs = rucio_data.as_matrix()
-    outputs = durations.as_matrix()
-    print(inputs.shape, outputs.shape)
-    return inputs, outputs
+    return rucio_data, durations
 
-# # splitting data into test and training set
-
-def split_data(rucio_data,durations, num_timesteps=30):
+def prepare_model_inputs(rucio_data,durations, num_timesteps=50):
     
-    # slice_size = batch_size*num_timesteps
-    # print(rucio_data.shape[0])
+    #slice_size = batch_size*num_timesteps
+    print(rucio_data.shape[0], durations.shape)
     n_examples = rucio_data.shape[0]
-    n_batches = (n_examples - num_timesteps )
-    print('Total Batches : {}'.format(n_batches))
+    n_batches = (n_examples - num_timesteps +1)
+    print('Total Data points for training/testing : {} of {} timesteps each.'.format(n_batches, num_timesteps))
     
     inputs=[]
     outputs=[]
     for i in range(0,n_batches):
         v = rucio_data[i:i+num_timesteps]
-        w = durations[i+num_timesteps]
+        w = durations[i+num_timesteps-1]
         inputs.append(v)
         outputs.append(w)
-    
+    print(len(inputs))
     inputs = np.stack(inputs)
     outputs = np.stack(outputs)
     print(inputs.shape, outputs.shape)
-
+    
     return inputs, outputs
 
-class LossHistory(cb.Callback):
-    def on_train_begin(self, logs={}):
-        self.losses = []
+def return_to_original(x, y, preds, index=None):
+    #print(x.shape, y.shape)
+    #print(x[0,1])
+    n_steps = x.shape[1]
+    #print(index[:n_steps])
+    #print(index[n_steps-1:])
+    index = index[n_steps-1:]
+    
+    cols = ['bytes', 'delay', 'activity', 'dst-rse', 'dst-type','protocol', 'src-rse', 'src-type', 'transfer-endpoint']
+    data = list(x[0])
+    for i in range(1,x.shape[0]):
+        data.append(x[i,n_steps-1,:])
+    
+    data = data[n_steps-1:]
+    #print(len(data))
+    data = pd.DataFrame(data, index=index, columns=cols)
+    data['bytes'] = data['bytes'] * 1e8
+    data['delay'] = data['delay'] * 1e3
+    # data['src-rse'] = data['src-rse'] * 1e2
+    # data['dst-rse'] = data['dst-rse'] * 1e2
+    
+    data = data.round().astype(int)
+    print(data.shape)
+    data = decode_labels(data)
+    data['duration'] = y
+    data['prediction'] = pred
+    # data['duration'] = data['duration'] * 1e3
+    # data['prediction'] = data['prediction'] * 1e3
+    
+    return data
 
-    def on_batch_end(self, batch, logs={}):
-        batch_loss = logs.get('loss')
-        self.losses.append(batch_loss)
+def decode_labels(rucio_data):
+    src_encoder,dst_encoder,type_encoder,activity_encoder,protocol_encoder,t_endpoint_encoder = load_encoders()
+    
+    rucio_data['src-rse'] = src_encoder.inverse_transform(rucio_data['src-rse'])
+    rucio_data['dst-rse'] = dst_encoder.inverse_transform(rucio_data['dst-rse'])
+    rucio_data['src-type'] = type_encoder.inverse_transform(rucio_data['src-type'])
+    rucio_data['dst-type'] = type_encoder.inverse_transform(rucio_data['dst-type'])
+    rucio_data['activity'] = activity_encoder.inverse_transform(rucio_data['activity'])
+    rucio_data['protocol'] = protocol_encoder.inverse_transform(rucio_data['protocol'])
+    rucio_data['transfer-endpoint'] = t_endpoint_encoder.inverse_transform(rucio_data['transfer-endpoint'])
+    
+    return rucio_data
