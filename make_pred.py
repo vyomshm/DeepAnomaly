@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import os
 import keras
 import keras.callbacks as cb
 from keras.models import Sequential,Model,model_from_json
@@ -9,14 +8,14 @@ from sklearn.preprocessing import LabelEncoder
 from keras.layers.advanced_activations import LeakyReLU, PReLU
 from keras.optimizers import Adam
 from keras.layers.recurrent import LSTM
-from helpers import preprocess_data, prepare_model_inputs, rescale_data, return_to_original, load_lstm
+from helpers import *
 
 #data dir
-file = 'data/atlas_rucio-events-2017.07.20.csv'
+file = 'data/atlas_rucio-events-2017.07.24.csv'
 model = load_lstm()
 
 data = pd.read_csv(file)
-#data = data[:10000]
+# data = data[:10000]
 data = preprocess_data(data)
 print(data.shape)
 indices = data.index
@@ -27,14 +26,15 @@ data = data[['bytes', 'delay', 'activity', 'dst-rse', 'dst-type',
 data, durations = rescale_data(data, durations)
 data = data.as_matrix()
 durations = durations.as_matrix()
-
-data, durations = prepare_model_inputs(data, durations, num_timesteps=100)
-
-pred = model.predict(data)
+print('preparing model inputs ...')
+# data, durations = prepare_model_inputs(data, durations, num_timesteps=100)
+gen_iterations=data.shape[0]-99
+pred = model.predict_generator(model_input_generator(data, durations, num_timesteps=100), steps=gen_iterations, use_multiprocessing=True)
 
 data = return_to_original(data, durations, pred, index=indices)
 print(data.shape)
-data.to_csv('rucio_transfer-anomalous-events-2017.07.20.csv')
+print('saving to csv..')
+data.to_csv('rucio_transfer-events-2017.07.24.csv')
 
 
 
