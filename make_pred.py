@@ -28,8 +28,9 @@ data = data.as_matrix()
 durations = durations.as_matrix()
 print('preparing model inputs ...')
 # data, durations = prepare_model_inputs(data, durations, num_timesteps=100)
-gen_iterations=data.shape[0]-99
-pred = model.predict_generator(model_input_generator(data, durations, num_timesteps=100), steps=gen_iterations, use_multiprocessing=True)
+n=data.shape[0]
+gen_iterations = n-99
+pred = model.predict_generator(model_input_generator(data, durations, num_timesteps=100), steps=gen_iterations,workers=4)
 
 data = return_to_original(data, durations, pred, index=indices)
 print(data.shape)
