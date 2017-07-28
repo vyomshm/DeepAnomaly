@@ -210,3 +210,17 @@ def decode_labels(rucio_data):
     rucio_data['transfer-endpoint'] = t_endpoint_encoder.inverse_transform(rucio_data['transfer-endpoint'])
     
     return rucio_data
+
+def model_input_generator(data, durations, num_timesteps=100):
+    n=data.shape[0]
+    n_events = (n - num_timesteps +1)
+    print('Total Data points/Events: {} of {} timesteps each.'.format(n_events, num_timesteps))
+
+    inputs=[]
+    outputs=[]
+    for i in range(0,n_events):
+        #print('Batch :',i)
+        v = data[i:i+num_timesteps]
+        w = durations[i+num_timesteps-1]
+        v = np.reshape(v, [1,num_timesteps, 9])
+        yield v,w
