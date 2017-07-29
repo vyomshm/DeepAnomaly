@@ -219,7 +219,7 @@ def model_input_generator(data, durations, num_timesteps=100):
     inputs=[]
     outputs=[]
     for i in range(0,n_events):
-        #print('Batch :',i)
+        print('Batch :{} of {}'.format(i, n_events))
         v = data[i:i+num_timesteps]
         w = durations[i+num_timesteps-1]
         v = np.reshape(v, [1,num_timesteps, 9])
