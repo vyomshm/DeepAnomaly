@@ -403,7 +403,7 @@ def evaluate_network(limit=None, n_timesteps=100, path="data/",model=None):
 
 # In[16]:
 
-evaluate_network(path='data/', limit = 5000)
+evaluate_network(path='data/', limit = 10000)
 
 
 # In[17]:

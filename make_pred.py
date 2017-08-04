@@ -15,7 +15,7 @@ file = 'data/atlas_rucio-events-2017.07.24.csv'
 model = load_lstm()
 
 data = pd.read_csv(file)
-# data = data[:10000]
+#data = data[:100000]
 data = preprocess_data(data)
 print(data.shape)
 indices = data.index
@@ -27,11 +27,12 @@ data, durations = rescale_data(data, durations)
 data = data.as_matrix()
 durations = durations.as_matrix()
 print('preparing model inputs ...')
-# data, durations = prepare_model_inputs(data, durations, num_timesteps=100)
-n=data.shape[0]
-gen_iterations = n-99
-pred = model.predict_generator(model_input_generator(data, durations, num_timesteps=100), steps=gen_iterations, workers=7)
-
+#data, durations = prepare_model_inputs(data, durations, num_timesteps=100)
+#n=data.shape[0]
+#gen_iterations = n-99
+pred = model.predict_generator(input_batch_generator(data, durations, num_timesteps=100), steps=50,verbose=1)
+print('done making predictions..')
+#pred=model.predict(data,batch_size=1024, verbose=1)
 data = return_to_original(data, durations, pred, index=indices)
 print(data.shape)
 print('saving to csv..')

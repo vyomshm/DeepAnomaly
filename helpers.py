@@ -192,7 +192,7 @@ def return_to_original(x, y, preds, index=None):
     print(data.shape)
     data = decode_labels(data)
     data['duration'] = y
-    data['prediction'] = pred
+    data['prediction'] = preds
     # data['duration'] = data['duration'] * 1e3
     # data['prediction'] = data['prediction'] * 1e3
     
@@ -224,3 +224,28 @@ def model_input_generator(data, durations, num_timesteps=100):
         w = durations[i+num_timesteps-1]
         v = np.reshape(v, [1,num_timesteps, 9])
         yield v,w
+
+def input_batch_generator(rucio_data,durations, num_timesteps=50):
+    
+    #slice_size = batch_size*num_timesteps
+    #print(rucio_data.shape[0], durations.shape)
+    n_examples = rucio_data.shape[0]
+    n_batches = (n_examples - num_timesteps +1)
+    print('Total Data points for training/testing : {} of {} timesteps each.'.format(n_batches, num_timesteps))
+    batch_size = n_batches//50
+    print('batch size :', batch_size)
+    n_batches= batch_size*50
+    print('n_batches:', n_batches)
+    for start_index in range(0, n_batches, batch_size):
+        inputs=[]
+        outputs=[]
+        print('batch:',start_index)
+        for i in range(start_index,start_index+batch_size):
+            v = rucio_data[i:i+num_timesteps]
+            w = durations[i+num_timesteps-1]
+            inputs.append(v)
+            outputs.append(w)
+        inputs = np.stack(inputs)
+        outputs = np.stack(outputs)
+        #print(inputs.shape, outputs.shape)
+        yield (inputs, outputs)
