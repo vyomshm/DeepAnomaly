@@ -97,7 +97,7 @@ def train_encoders(rucio_data, use_cache=True):
 def preprocess_data(rucio_data, use_cache=True):
     
     fields_to_drop = ['account','reason','checksum-adler','checksum-md5','guid','request-id','transfer-id','tool-id',
-                      'transfer-link','name','previous-request-id','scope','src-url','dst-url', 'Unnamed: 0']
+                      'transfer-link','previous-request-id','src-url','dst-url', 'Unnamed: 0']
     timestamps = ['started_at', 'submitted_at','transferred_at']
 
     #DROP FIELDS , CHANGE TIME FORMAT, add dataetime index
@@ -167,13 +167,17 @@ def prepare_model_inputs(rucio_data,durations, num_timesteps=50):
     
     return inputs, outputs
 
-def return_to_original(x, y, preds, index=None):
+def return_to_original(x, y, preds, index=None, file_names=None, scopes=None):
     #print(x.shape, y.shape)
     #print(x[0,1])
     n_steps = x.shape[1]
     #print(index[:n_steps])
     #print(index[n_steps-1:])
+    print('index len and file_names :',len(index), len(file_names))
     index = index[n_steps-1:]
+    file_names= file_names[n_steps-1:]
+    scopes=scopes[n_steps-1:]
+    print('index len and file_names :',len(index), len(file_names))
     
     cols = ['bytes', 'delay', 'activity', 'dst-rse', 'dst-type','protocol', 'src-rse', 'src-type', 'transfer-endpoint']
     data = list(x[0])
@@ -193,6 +197,11 @@ def return_to_original(x, y, preds, index=None):
     data = decode_labels(data)
     data['duration'] = y
     data['prediction'] = preds
+    
+    #print(len(index), len(file_names), 'after')
+    data['name'] = file_names
+    data['scope'] = scopes
+        
     # data['duration'] = data['duration'] * 1e3
     # data['prediction'] = data['prediction'] * 1e3
     
