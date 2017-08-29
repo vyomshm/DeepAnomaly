@@ -24,9 +24,6 @@ This project is aimed towards building a framework which monitors incoming ATLAS
 * I wasn't able to implement a way to do the ML processing in real-time i.e. at the same time as the events are themselves being indexed into the ES instances.
 
 
-![These figures were genrated from model predictions on a set of 200,000 consecutive transfers](https://github.com/vyomshm/DeepAnomaly/blob/master/automate.png) 
-
-
 
 # Project Complexity and challenges
 
@@ -49,13 +46,13 @@ Vyom Sharma - vyomshm@gmail.com
 
 ## Folder Descriptions
 
-### Exploration notebooks 
+* __Exploration-notebooks__
 
-### encoders - saved cached numpy files used for preprocessing and parsing rucio-transfer data. Do not modify these!!
+* __encoders__ - saved cached numpy files used for preprocessing and parsing rucio-transfer data. Do not modify these!!
 
-### plots - contains some useful plots. Refer the final report to learn more.
+* __plots__ - contains some useful plots. Refer the final report to learn more.
 
-### Models - saved deep learning models.
+* __Models__ - saved deep learning models.
 
 ## File descriptions
 
