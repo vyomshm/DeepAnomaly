@@ -2,7 +2,7 @@
 
 Main Code repository for GSOC-2017 project under CERN-HSF (https://summerofcode.withgoogle.com/projects/#4916590398144512)
 
-You can read my final repost [here](https://medium.com/towards-data-science/gsoc-2017-working-on-anomaly-detection-at-cern-hsf-49766ba6a812).
+### Read my final report [here](https://medium.com/towards-data-science/gsoc-2017-working-on-anomaly-detection-at-cern-hsf-49766ba6a812).
 
 # Overview
 
@@ -38,8 +38,8 @@ This project is aimed towards building a framework which monitors incoming ATLAS
 
 # MENTORS -
 
-* [Mario Lassnig](mario.lassnig@cern.ch)
-* [Alessandro Di Girolamo](alessandro.di.girolamo@cern.ch)
+* [Mario Lassnig](mailto:mario.lassnig@cern.ch)
+* [Alessandro Di Girolamo](mailto:alessandro.di.girolamo@cern.ch)
 
 ## STUDENT DETAILS
 
@@ -47,7 +47,32 @@ Vyom Sharma - vyomshm@gmail.com
 
 ## CATEGORY - atlas
 
-#### ~Fin~
+## Folder Descriptions
 
-![](https://github.com/vyomshm/DeepAnomaly/blob/master/automate.png)
+### Exploration notebooks 
+
+### encoders - saved cached numpy files used for preprocessing and parsing rucio-transfer data. Do not modify these!!
+
+### plots - contains some useful plots. Refer the final report to learn more.
+
+### Models - saved deep learning models.
+
+## File descriptions
+
+### Notebooks
+
+* __train_lstm_withperfPlots__ - main notebook used for training the lstm network and plotting performance
+* __anomaly_analysis__ - describes the current way to label anomalies in adatframe which contains predictions made by the latest lstm network. Also anaysis of the detected anomalies.
+* __
+
+### Scripts
+
+* __helpers.py__ - helper functions for make_pred.py
+* __make_pred.py__ - script for making predictions on raw dataframe using trained models saved in 'model' directory
+* __multi_gpu.py__ - this script allows keras to train a network faster using ultiple gpu's if present Tested on two systems - A custom PC with 2 NVIDIA GeForce 1080Ti and the aws's g2.8xlarge ec2 instance.
+* __save_predict_live.py__ - a very rough script for capturing live transfer events and using the trained model oto make predictions on them. Doesn't work like it's supposed to. 
+* __save_data.py__ - a script for extracting rucio-transfer data and save them t dataframes (ome for each index) in the "data" directory
+
+
+`fin`
 

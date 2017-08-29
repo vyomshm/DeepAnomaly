@@ -196,18 +196,12 @@ indices, indices_to_count = get_indices(es)
 count=es.count(index='atlas_rucio-events-*')
 print('total documents at- {} : {}'.format(time.strftime("%c"), count['count']) )
 
-
-# In[10]:
-
-indices_to_count['atlas_rucio-events-2017.05.25']
-
-
 # # Extracting Data from 2-3 Months
 
 # In[12]:
 
-k = [index for index in indices if ('atlas_rucio-events-2017.05' in index)] #may-indices
-l = [index for index in indices if ('atlas_rucio-events-2017.06' in index)] #june-indices
+k = [index for index in indices if ('atlas_rucio-events-2017.07' in index)] #july-indices
+l = [index for index in indices if ('atlas_rucio-events-2017.08' in index)] #aug-indices
 print(len(k), '\n', len(l))
 
 
@@ -222,7 +216,7 @@ myquery = {
     }
 # l.remove('atlas_rucio-events-2017.06.03')
 # len(l)
-df_june = get_indices_data(indices_list=l, query=myquery,
+df_aug = get_indices_data(indices_list=l, query=myquery,
                            scan_step= 10000,
                            scan_size=None,
                            indices_dict=indices_to_count)
